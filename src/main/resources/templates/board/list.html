@@ -31,7 +31,7 @@
                 <span th:text="${post.author}"></span>
             </td>
             <td>
-                <span th:text="${#temporals.format(post.createdDate, 'yyyy-MM-dd HH:mm:ss')}"></span>
+                <span th:text="${#temporals.format(post.modifiedDate, 'yyyy-MM-dd HH:mm:ss')}"></span>
             </td>
         </tr>
         </tbody>
@@ -42,7 +42,6 @@
             <a class="btn btn-primary" th:href="@{/post}" role="button">글쓰기</a>
         </div>
     </div>
-
     <div class="row w-100">
         <ul class="pagination justify-content-center align-items-center py-5">
             <th:block th:if="${postList.first}">
@@ -51,16 +50,21 @@
             <th:block th:unless="${postList.first}">
                 <li class="page-item"><a class="page-link" th:href="@{'/list?page=' + ${postList.pageable.pageNumber}}">Previous</a></li>
             </th:block>
-
-            <th:block th:each="num : ${#numbers.sequence(1, postList.totalPages)}">
-                <th:block th:if="${num != postList.pageable.pageNumber + 1}">
-                    <li class="page-item"><a class="page-link" th:href="@{'/list?page=' + ${num}}">[[${num}]]</a></li>
-                </th:block>
-                <th:block th:unless="${num != postList.pageable.pageNumber + 1}">
-                    <li class="page-item active"><a class="page-link">[[${num}]]</a></li>
+            <!--            -->
+            <th:block th:if="${postList.totalPages != 0}">
+                <th:block th:each="num : ${#numbers.sequence(0, postList.totalPages - 1)}">
+                    <th:block th:if="${num != postList.pageable.pageNumber}">
+                        <li class="page-item"><a class="page-link" th:href="@{'/list?page=' + ${num + 1}}">[[${num} + 1]]</a></li>
+                    </th:block>
+                    <th:block th:unless="${num != postList.pageable.pageNumber}">
+                        <li class="page-item active"><a class="page-link">[[${num} + 1]]</a></li>
+                    </th:block>
                 </th:block>
             </th:block>
-
+            <th:block th:unless="${postList.totalPages != 0}">
+                <li class="page-item active"><a class="page-link">[[${postList.totalPages} + 1]]</a></li>
+            </th:block>
+            <!--            -->
             <th:block th:if="${postList.last}">
                 <li class="page-item disabled"><a class="page-link">Next</a></li>
             </th:block>

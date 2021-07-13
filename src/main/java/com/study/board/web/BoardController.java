@@ -1,14 +1,11 @@
-package com.study.board.controller;
+package com.study.board.web;
 
-import com.study.board.dto.BoardDto;
-import com.study.board.dto.FileDto;
-import com.study.board.service.BoardService;
-import com.study.board.service.FileService;
-import com.study.board.util.MD5Generator;
+import com.study.board.web.dto.*;
+import com.study.board.service.board.BoardService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -20,23 +17,16 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Optional;
 
+@RequiredArgsConstructor
 @Controller
 public class BoardController {
 
-    private BoardService boardService;
-    private FileService fileService;
-
-    public BoardController(BoardService boardService, FileService fileService) {
-        this.boardService = boardService;
-        this.fileService = fileService;
-    }
+    private final BoardService boardService;
 
     @GetMapping("/")
     public String index(){
@@ -45,7 +35,7 @@ public class BoardController {
 
     @GetMapping("/list")
     public String list(Model model, @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
-        Page<BoardDto> boardDtoList = boardService.getBoardList2(pageable);
+        Page<BoardListResponseDto> boardDtoList = boardService.getBoardList(pageable);
         model.addAttribute("postList", boardDtoList);
         return "board/list.html";
     }
@@ -65,56 +55,27 @@ public class BoardController {
     }
 
     @PostMapping("/post")
-    public String write(@RequestParam("file") MultipartFile files, BoardDto boardDto) {
-        try {
-            String origFilename = files.getOriginalFilename();
-            String filename = new MD5Generator(origFilename).toString();
-
-            String savePath = System.getProperty("user.dir") + File.separator + "files";
-            if(!new File(savePath).exists()) {
-                try {
-                    new File(savePath).mkdir();
-                }catch (Exception e) {
-                    e.getStackTrace();
-                }
-            }
-            String filePath = savePath + File.separator + filename;
-            files.transferTo(new File(filePath));
-
-            FileDto fileDto = new FileDto();
-            fileDto.setOrigFilename(origFilename);
-            fileDto.setFilename(filename);
-            fileDto.setFilePath(filePath);
-
-            Long fileId = fileService.saveFile(fileDto);
-            boardDto.setFileId(fileId);
-            boardService.savePost(boardDto);
-        }catch (Exception e) {
-            e.printStackTrace();
-        }
+    public String save(@RequestParam("file") MultipartFile files, BoardSaveRequestDto boardSaveRequestDto) {
+        boardService.savePost(files, boardSaveRequestDto);
         return "redirect:/";
     }
 
     @GetMapping("/post/{id}")
     public String detail(@PathVariable("id") Long id, Model model) {
-        BoardDto boardDto = boardService.getPost(id);
-        FileDto fileDto = fileService.getFile(boardDto.getFileId());
-
-        model.addAttribute("post", boardDto);
-        model.addAttribute("filename", fileDto.getOrigFilename());
+        model.addAttribute("post", boardService.getPost(id));
         return "board/detail.html";
     }
 
     @GetMapping("/post/edit/{id}")
     public String edit(@PathVariable("id") Long id, Model model) {
-        BoardDto boardDto = boardService.getPost(id);
+        BoardResponseDto boardDto = boardService.getPost(id);
         model.addAttribute("post", boardDto);
         return "board/edit.html";
     }
 
     @PutMapping("/post/edit/{id}")
-    public String update(BoardDto boardDto) {
-        boardService.savePost(boardDto);
+    public String update(@PathVariable("id") Long id, @RequestParam("file") MultipartFile files, BoardUpdateRequestDto boardUpdateRequestDto) {
+        boardService.updatePost(id, files, boardUpdateRequestDto);
         return "redirect:/";
     }
 
@@ -124,14 +85,14 @@ public class BoardController {
         return "redirect:/";
     }
 
-    @GetMapping("/download/{fileId}")
-    public ResponseEntity<Resource> fileDownload(@PathVariable("fileId") Long fileId) throws IOException {
-        FileDto fileDto = fileService.getFile(fileId);
-        Path path = Paths.get(fileDto.getFilePath());
+    @GetMapping("/download/{id}")
+    public ResponseEntity<Resource> fileDownload(@PathVariable("id") Long id) throws IOException {
+        BoardFileResponseDto dto = boardService.getFile(id);
+        Path path = Paths.get(dto.getFilePath());
         Resource resource = new InputStreamResource(Files.newInputStream(path));
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType("application/octet-stream"))
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileDto.getOrigFilename() + "\"")
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + dto.getOrigFilename() + "\"")
                 .body(resource);
     }
 

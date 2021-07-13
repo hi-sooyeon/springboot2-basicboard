@@ -12,15 +12,13 @@
         <div class="card-body">
             <h5 class="card-title" th:text="@{${post.title} + ' - ' + ${post.author}}"></h5>
             <p class="card-text">
-                <small class="text-muted" th:text="${#temporals.format(post.createdDate, 'yyyy-MM-dd HH:mm:ss')}"></small>
+                <small class="text-muted" th:text="${#temporals.format(post.modifiedDate, 'yyyy-MM-dd HH:mm:ss')}"></small>
             </p>
             <p class="card-text" th:text="${post.content}"></p>
 
-            <div th:if="${post.fileId != null}">
-                <img th:src="@{'/download/' + ${post.fileId}}" alt="img" style="object-fit: contain; width: 300px;">
-                <hr>
+            <div th:if="${post.origFilename != null}">
                 <strong>첨부파일 : </strong>
-                <a class="card-text" th:href="@{'/download/' + ${post.fileId}}">[[${filename}]]</a>
+                <a class="card-text" th:href="@{'/download/' + ${post.id}}">[[${post.origFilename}]]</a>
             </div>
         </div>
     </div>
